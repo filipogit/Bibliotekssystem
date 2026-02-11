@@ -34,4 +34,5 @@ namespace Bibliotekssystem.Models
 /* Properties: ISBN(string), Title(string), Author(string), PublishedYear(int), IsAvailable(bool)
 Konstruktor som tar obligatoriska parametrar
 ISBN ska endast kunna sättas vid skapande
-Metod GetInfo() som returnerar formaterad bokinformation*/
+Metod GetInfo() som returnerar formaterad bokinformation
+*/
