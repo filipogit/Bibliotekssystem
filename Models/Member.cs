@@ -27,7 +27,8 @@ namespace Bibliotekssystem.Models
     }
 }
 
-/*Properties: MemberId(string), Name(string), Email(string), MemberSince(DateTime)
+/*
+Properties: MemberId(string), Name(string), Email(string), MemberSince(DateTime)
 Properties för att hålla reda på lånade böcker
 Metod för att visa medlemsinformation
 */
