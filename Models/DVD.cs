@@ -9,7 +9,7 @@ namespace Bibliotekssystem.Models
     public class DVD : LibraryItem
     {
         public string Director { get; set; }
-        public int Duration { get; set; } // minuter
+        public int Duration { get; set; }
         public string Genre { get; set; }
 
         public DVD(string id, string title, int publishedYear, string director, int duration, string genre)
@@ -20,9 +20,22 @@ namespace Bibliotekssystem.Models
             Genre = genre;
         }
 
+        public override bool Matches(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return false;
+
+            searchTerm = searchTerm.ToLower();
+
+            return base.Matches(searchTerm) ||
+                   Director.ToLower().Contains(searchTerm) ||
+                   Genre.ToLower().Contains(searchTerm);
+        }
+
         public override string GetInfo()
         {
-            return $"DVD - ID: {Id}, Titel: {Title}, Regissör: {Director}, Längd: {Duration} min, Genre: {Genre}, Utgiven: {PublishedYear}, Tillgänglig: {IsAvailable}";
+            string status = IsAvailable ? "Tillgänglig" : $"Utlånad till {BorrowedBy}";
+            return $"DVD - Titel: {Title}, Regissör: {Director}, Längd: {Duration} min, Genre: {Genre}, Status: {status}";
         }
 
         public string GetDurationFormatted()

@@ -20,9 +20,23 @@ namespace Bibliotekssystem.Models
             Month = month;
         }
 
+        public override bool Matches(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return false;
+
+            searchTerm = searchTerm.ToLower();
+
+            return base.Matches(searchTerm) ||
+                   Publisher.ToLower().Contains(searchTerm) ||
+                   Month.ToLower().Contains(searchTerm) ||
+                   IssueNumber.ToString().Contains(searchTerm);
+        }
+
         public override string GetInfo()
         {
-            return $"TIDNING - ID: {Id}, Titel: {Title}, Utgåva: #{IssueNumber}, Utgivare: {Publisher}, Månad: {Month}, Utgiven: {PublishedYear}, Tillgänglig: {IsAvailable}";
+            string status = IsAvailable ? "Tillgänglig" : $"Utlånad till {BorrowedBy}";
+            return $"TIDNING - Titel: {Title}, Utgåva: #{IssueNumber}, Utgivare: {Publisher}, Månad: {Month}, Status: {status}";
         }
     }
 }

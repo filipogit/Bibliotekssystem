@@ -6,6 +6,8 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
+using Bibliotekssystem.Interfaces;
+
 namespace Bibliotekssystem.Models
 {
     public class Book : LibraryItem
@@ -14,18 +16,30 @@ namespace Bibliotekssystem.Models
         public string Author { get; set; }
 
         public Book(string isbn, string title, string author, int publishedYear)
-            : base(isbn, title, publishedYear) // ISBN används som Id
+            : base(isbn, title, publishedYear)
         {
             ISBN = isbn;
-
             Author = author;
-
         }
 
-        // Override GetInfo för att inkludera bokspecifika detaljer
+        // Override Matches för att inkludera ISBN och Author
+        public override bool Matches(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return false;
+
+            searchTerm = searchTerm.ToLower();
+
+            return base.Matches(searchTerm) ||
+                   ISBN.ToLower().Contains(searchTerm) ||
+                   Author.ToLower().Contains(searchTerm);
+        }
+
+
         public override string GetInfo()
         {
-            return $"BOK - ISBN: {ISBN}, Titel: {Title}, Författare: {Author}, Utgiven: {PublishedYear}, Tillgänglig: {IsAvailable}";
+            string status = IsAvailable ? "Tillgänglig" : $"Utlånad till {BorrowedBy}";
+            return $"BOK - ISBN: {ISBN}, Titel: {Title}, Författare: {Author}, Utgiven: {PublishedYear}, Status: {status}";
         }
     }
 }
