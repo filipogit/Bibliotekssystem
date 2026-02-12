@@ -8,6 +8,12 @@ namespace Bibliotekssystem.Models
 {
     public class Member
     {
+        public string MemberId { get; init; }
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public DateTime MemberSince { get; init; }
+
+        // Konstruktor med DateTime
         public Member(string memberId, string name, string email, DateTime memberSince)
         {
             MemberId = memberId;
@@ -15,15 +21,14 @@ namespace Bibliotekssystem.Models
             Email = email;
             MemberSince = memberSince;
         }
-        public string MemberId { get; init; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public DateTime MemberSince { get; set; }
 
-        public string GetInfo()
+
+        // Alternativ konstruktor utan DateTime (sätter dagens datum som standard)
+        public Member(string memberId, string name, string email)
+            : this(memberId, name, email, DateTime.Now)
         {
-            return $"Member ID: {MemberId}, Name: {Name}, Email: {Email}, Member Since: {MemberSince}";
-        }   
+
+        }
     }
 }
 
