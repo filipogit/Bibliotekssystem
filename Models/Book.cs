@@ -8,25 +8,24 @@ using System.Threading.Tasks;
 
 namespace Bibliotekssystem.Models
 {
-    public class Book
+    public class Book : LibraryItem
     {
-        public Book(string iSBN, string title, string author, int publishedYear)
+        public string ISBN { get; init; }
+        public string Author { get; set; }
+
+        public Book(string isbn, string title, string author, int publishedYear)
+            : base(isbn, title, publishedYear) // ISBN används som Id
         {
-            ISBN = iSBN;
-            Title = title;
+            ISBN = isbn;
+
             Author = author;
-            PublishedYear = publishedYear;
+
         }
 
-        public string ISBN { get; init; }
-        public string Title { get; set; }
-        public string Author { get; set; }
-        public int PublishedYear { get; set; }
-        public bool IsAvailable { get; set; }
-
-        public string GetInfo()
+        // Override GetInfo för att inkludera bokspecifika detaljer
+        public override string GetInfo()
         {
-            return $"ISBN: {ISBN}, Title: {Title}, Author: {Author}, Published Year: {PublishedYear}, Available: {IsAvailable}";
+            return $"BOK - ISBN: {ISBN}, Titel: {Title}, Författare: {Author}, Utgiven: {PublishedYear}, Tillgänglig: {IsAvailable}";
         }
     }
 }
