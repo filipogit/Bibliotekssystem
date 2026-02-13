@@ -53,7 +53,7 @@ namespace Bibliotekssystem.Models
             }
         }
 
-        // Implementera ISearchable
+        // Implementering av ISearchable
         public virtual bool Matches(string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
