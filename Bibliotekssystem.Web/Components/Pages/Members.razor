@@ -1,0 +1,129 @@
+@page "/members"
+@page "/members"
+@rendermode InteractiveServer
+@inject LibraryContext Db
+
+<PageTitle>Medlemmar</PageTitle>
+
+<h1>?? Medlemmar</h1>
+
+<button class="btn btn-success mb-3" @onclick="() => showForm = !showForm">
+    @(showForm ? "? Avbryt" : "+ Registrera medlem")
+</button>
+
+@if (showForm)
+{
+    <div class="card mb-4" style="max-width:500px">
+        <div class="card-header"><strong>Ny medlem</strong></div>
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(formMessage))
+            {
+                <div class="alert @(formError ? "alert-danger" : "alert-success")">@formMessage</div>
+            }
+            <EditForm Model="newMember" OnValidSubmit="AddMember">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label">Namn</label>
+                    <InputText class="form-control" @bind-Value="newMember.Name" />
+                    <ValidationMessage For="@(() => newMember.Name)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">E-post</label>
+                    <InputText class="form-control" @bind-Value="newMember.Email" />
+                    <ValidationMessage For="@(() => newMember.Email)" />
+                </div>
+                <button type="submit" class="btn btn-primary">Spara</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (members is null)
+{
+    <p>Laddar...</p>
+}
+else if (!members.Any())
+{
+    <p class="text-muted">Inga medlemmar registrerade.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>E-post</th>
+                <th>Medlem sedan</th>
+                <th>Aktiva lån</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in members)
+            {
+                <tr>
+                    <td>@row.Member.Name</td>
+                    <td>@row.Member.Email</td>
+                    <td>@row.Member.MemberSince.ToShortDateString()</td>
+                    <td>
+                        <span class="badge @(row.ActiveLoans > 0 ? "text-bg-warning" : "text-bg-light text-dark")">
+                            @row.ActiveLoans
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/members/@row.Member.Id" class="btn btn-sm btn-outline-primary">Detaljer</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<MemberRow>? members;
+    private bool showForm;
+    private Member newMember = new();
+    private string formMessage = string.Empty;
+    private bool formError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task AddMember()
+    {
+        var exists = await Db.Members.AnyAsync(m => m.Email == newMember.Email);
+        if (exists)
+        {
+            formMessage = "En medlem med denna e-post finns redan.";
+            formError = true;
+            return;
+        }
+
+        newMember.MemberSince = DateTime.Now;
+        Db.Members.Add(newMember);
+        await Db.SaveChangesAsync();
+
+        formMessage = $"{newMember.Name} registrerades.";
+        formError = false;
+        newMember = new();
+        showForm = false;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var all = await Db.Members
+            .Include(m => m.Loans)
+            .OrderBy(m => m.Name)
+            .ToListAsync();
+
+        members = all.Select(m => new MemberRow(m, m.Loans.Count(l => l.ReturnDate == null))).ToList();
+    }
+
+    private record MemberRow(Member Member, int ActiveLoans);
+}
+

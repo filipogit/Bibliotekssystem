@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+using System.ComponentModel.DataAnnotations;
 using Bibliotekssystem.Interfaces;
 
 namespace Bibliotekssystem.Models
@@ -11,7 +7,12 @@ namespace Bibliotekssystem.Models
     public class LibraryItem : ISearchable
     {
         public int Id { get; set; }
+
+        [Required(ErrorMessage = "Titel är obligatoriskt.")]
+        [StringLength(200, ErrorMessage = "Titel får max vara 200 tecken.")]
         public string Title { get; set; } = string.Empty;
+
+        [Range(1000, 2100, ErrorMessage = "Ange ett giltigt utgivningsår.")]
         public int PublishedYear { get; set; }
         public bool IsAvailable { get; set; } = true;
         public string? BorrowedBy { get; set; }
@@ -52,7 +53,6 @@ namespace Bibliotekssystem.Models
             }
         }
 
-        // Implementering av ISearchable
         public virtual bool Matches(string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))

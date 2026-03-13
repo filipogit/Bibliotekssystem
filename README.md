@@ -1,101 +1,166 @@
 # Bibliotekssystem
 
-Ett konsolbaserat bibliotekssystem utvecklat i C# (.NET 9) fˆr att hantera bˆcker, medlemmar och lÂn.
-
-## Beskrivning
-
-Detta ‰r ett enkelt men funktionellt bibliotekssystem som gˆr det mˆjligt att:
-
-- Registrera och hantera bˆcker
-- Registrera och hantera medlemmar
-- Hantera utlÂning och Âterl‰mning av bˆcker
-- Sˆka efter bˆcker
-- Visa statistik ˆver biblioteksverksamheten
+Ett bibliotekssystem byggt med **Blazor Server** och **Entity Framework Core** i C# (.NET 10) f√∂r att hantera b√∂cker, medlemmar och l√•n via ett webbaserat gr√§nssnitt.
 
 ## Funktioner
 
-### Bˆcker (Book)
-- ISBN, titel, fˆrfattare, utgivningsÂr
-- Tillg‰nglighetsstatus
-- Formaterad bokinformation
-
-### Medlemmar (Member)
-- Medlems-ID, namn, e-post
-- Medlemskap sedan datum
-- Hantering av lÂnade bˆcker
-
-### LÂn (Loan)
-- Koppling mellan bok och medlem
-- LÂnedatum, fˆrfallodatum och Âterl‰mningsdatum
-- Automatisk kontroll av fˆrsenade lÂn
-- Status pÂ Âterl‰mning
-
-### Biblioteksstatistik (LibraryStatistics)
-- Totalt antal bˆcker och tillg‰ngliga bˆcker
-- Aktiva lÂn och fˆrsenade lÂn
-- Popul‰raste bˆcker
-
-## Projektstruktur
-
-## Krav
-
-- .NET 9 SDK eller senare
-- Visual Studio 2022 (rekommenderat) eller annan C#-IDE
-
-## Installation
-
-	1. Klona projektet frÂn GitHub:
-    
-Eller ˆppna direkt i Visual Studio via **File > Open > Project/Solution**
-
-## Hur man kˆr programmet
-
-### Via Visual Studio
-1. ÷ppna lˆsningen i Visual Studio 2022
-2. S‰tt `Bibliotekssystem` som startprojekt (hˆgerklicka pÂ projektet > **Set as Startup Project**)
-3. Tryck pÂ `F5` eller klicka pÂ **Start** fˆr att kˆra programmet
-
-### Via kommandotolken
-
-## Hur man kˆr tester
-
-### Via Visual Studio
-1. ÷ppna **Test Explorer** (__View > Test Explorer__)
-2. Klicka pÂ **Run All** fˆr att kˆra alla tester
-
-### Via kommandotolken
-
-## Anv‰ndning
-
-Efter att programmet startat kan du:
-
-1. L‰gga till bˆcker i systemet
-2. Registrera nya medlemmar
-3. LÂna ut bˆcker till medlemmar
-4. ≈terl‰mna bˆcker
-5. Sˆka efter bˆcker
-6. Visa biblioteksstatistik
-
-## Kodstandard
-
-Projektet fˆljer moderna C#-konventioner:
-
-- Inkapsling med `init`-accessors d‰r l‰mpligt
-- Nullable reference types fˆr b‰ttre null-s‰kerhet
-- Expression-bodied members fˆr ber‰knade properties
-- Immutable design patterns d‰r mˆjligt
+- Registrera och hantera b√∂cker med s√∂kning och sortering
+- Registrera och hantera medlemmar
+- L√•na ut och returnera b√∂cker
+- Visa l√•nehistorik per bok och medlem
+- Markering av f√∂rsenade l√•n
+- Snabbstatistik p√• startsidan
+- Formul√§rvalidering med `DataAnnotations`
 
 ## Teknisk stack
 
-- **SprÂk:** C# 13.0
-- **Framework:** .NET 9
-- **Testramverk:** xUnit
-- **IDE:** Visual Studio 2022
+| Del | Teknologi |
+|---|---|
+| Spr√•k | C# 13.0 |
+| Framework | .NET 10 |
+| UI | Blazor Server |
+| ORM | Entity Framework Core 10.0.5 |
+| Databas | SQLite (`library.db`) |
+| Testramverk | xUnit |
+| IDE | Visual Studio 2022 |
 
-## Fˆrfattare
+## Projektstruktur
 
-Utvecklat som ett skolprojekt fˆr att demonstrera objektorienterad programmering i C#.
+```
+Bibliotekssystem/
++-- Data/
+|   +-- LibraryContext.cs          # EF Core DbContext
++-- Interfaces/
+|   +-- ISearchable.cs             # S√∂kgr√§nssnitt
++-- Migrations/                    # EF Core-migrationer
++-- Models/
+|   +-- LibraryItem.cs             # Basklass
+|   +-- Book.cs                    # Bokmodell
+|   +-- Member.cs                  # Medlemsmodell
+|   +-- Loan.cs                    # L√•nemodell
++-- Repositories/
+|   +-- BookRepository.cs          # Databasoperationer f√∂r b√∂cker
++-- Bibliotekssystem.Web/
+|   +-- Components/
+|       +-- Layout/
+|       |   +-- NavMenu.razor
+|       +-- Pages/
+|       |   +-- Home.razor         # Startsida med statistik (/)
+|       |   +-- Books.razor        # Boklista (/books)
+|       |   +-- BookDetail.razor   # Bokdetaljer (/books/{id})
+|       |   +-- Members.razor      # Medlemslista (/members)
+|       |   +-- MemberDetail.razor # Medlemsdetaljer (/members/{id})
+|       |   +-- Loans.razor        # Utl√•ning (/loans)
+|       +-- Shared/
+|           +-- BookCard.razor     # √Öteranv√§ndbar bokkomponent
+|           +-- StatusBadge.razor  # √Öteranv√§ndbar statusbadge
++-- Bibliotekssystem.Test/
+    +-- BookTests.cs
+    +-- BookRepositoryTests.cs
+    +-- LoanTests.cs
+    +-- SearchTests.cs
+    +-- LibraryStatisticsTests.cs
+```
 
-## Licens
+## Databasmodell
 
-Detta projekt ‰r skapat fˆr utbildningssyfte.
+```
+LibraryItem (basklass)
++-- Id             int (PK)
++-- Title          string
++-- PublishedYear  int
++-- IsAvailable    bool
++-- BorrowedBy     string?
+
+Book : LibraryItem
++-- ISBN           string (unik index)
++-- Author         string
+
+Member
++-- Id             int (PK)
++-- Name           string
++-- Email          string
++-- MemberSince    DateTime
+
+Loan
++-- Id             int (PK)
++-- BookId         int (FK -> Book)
++-- MemberId       int (FK -> Member)
++-- LoanDate       DateTime
++-- DueDate        DateTime
++-- ReturnDate     DateTime?
+```
+
+**Relationer:**
+- En `Book` kan ha m√•nga `Loan`
+- En `Member` kan ha m√•nga `Loan`
+- Ett `Loan` tillh√∂r exakt en `Book` och en `Member`
+
+## Sidor i Blazor-gr√§nssnittet
+
+| Sida | Route | Beskrivning |
+|---|---|---|
+| Hem | `/` | V√§lkomstvy med snabbstatistik |
+| B√∂cker | `/books` | Lista, s√∂k, sortera, l√§gg till bok |
+| Bokdetaljer | `/books/{id}` | Detaljvy, l√•nehistorik, l√•n/returnera |
+| Medlemmar | `/members` | Lista, l√§gg till medlem |
+| Medlemsdetaljer | `/members/{id}` | Detaljvy med l√•nehistorik |
+| Utl√•ning | `/loans` | Skapa l√•n, lista aktiva l√•n |
+
+## Krav
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- Visual Studio 2022 (rekommenderas) eller annan C#-IDE
+
+## Installation
+
+1. Klona projektet:
+   ```bash
+   git clone https://github.com/filipogit/Bibliotekssystem.git
+   cd Bibliotekssystem
+   ```
+
+2. Skapa databasen med EF Core-migrationer:
+   ```bash
+   dotnet ef database update --project Bibliotekssystem.csproj
+   ```
+
+## K√∂ra projektet
+
+### Via Visual Studio
+1. √ñppna l√∂sningen i Visual Studio 2022
+2. H√∂gerklicka p√• `Bibliotekssystem.Web` -> **Set as Startup Project**
+3. Tryck `F5` eller klicka **Start**
+4. Webbl√§saren √∂ppnas automatiskt p√• `https://localhost:{port}`
+
+### Via kommandotolken
+```bash
+dotnet run --project Bibliotekssystem.Web
+```
+
+## K√∂ra tester
+
+### Via Visual Studio
+1. √ñppna **Test Explorer** via **View > Test Explorer**
+2. Klicka **Run All**
+
+### Via kommandotolken
+```bash
+dotnet test Bibliotekssystem.Test/Bibliotekssystemtest.csproj
+```
+
+Nuvarande testresultat: **27 tester, 0 fel**
+
+## Kodstandard
+
+Projektet f√∂ljer moderna C#-konventioner:
+
+- `nullable enable` f√∂r null-s√§kerhet
+- `async/await` f√∂r alla databasoperationer
+- `DataAnnotations` f√∂r modell- och formul√§rvalidering
+- Arv och polymorfism (`LibraryItem` -> `Book`)
+- √Öteranv√§ndbara Blazor-komponenter i `Shared/`
+
+## F√∂rfattare
+
+Utvecklat som ett skolprojekt f√∂r att demonstrera objektorienterad programmering och webbutveckling med C# och Blazor.

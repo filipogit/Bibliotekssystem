@@ -1,0 +1,94 @@
+@page "/members/{Id:int}"
+@rendermode InteractiveServer
+@inject LibraryContext Db
+
+<PageTitle>Medlemsdetaljer</PageTitle>
+
+@if (member is null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <h1>?? @member.Name</h1>
+
+    <div class="card mb-4" style="max-width:400px">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-5">E-post</dt>
+                <dd class="col-sm-7">@member.Email</dd>
+                <dt class="col-sm-5">Medlem sedan</dt>
+                <dd class="col-sm-7">@member.MemberSince.ToShortDateString()</dd>
+                <dt class="col-sm-5">Aktiva lån</dt>
+                <dd class="col-sm-7">@loans.Count(l => !l.IsReturned)</dd>
+            </dl>
+        </div>
+    </div>
+
+    <h2>Lånhistorik</h2>
+    @if (!loans.Any())
+    {
+        <p class="text-muted">Inga lån registrerade.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Bok</th>
+                    <th>Lånedatum</th>
+                    <th>Förfallodatum</th>
+                    <th>Återlämnat</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var loan in loans)
+                {
+                    <tr>
+                        <td><a href="/books/@loan.BookId">@loan.Book.Title</a></td>
+                        <td>@loan.LoanDate.ToShortDateString()</td>
+                        <td>@loan.DueDate.ToShortDateString()</td>
+                        <td>@(loan.ReturnDate.HasValue ? loan.ReturnDate.Value.ToShortDateString() : "–")</td>
+                        <td>
+                            @if (loan.IsReturned)
+                            {
+                                <span class="badge text-bg-success">Återlämnad</span>
+                            }
+                            else if (loan.IsOverdue)
+                            {
+                                <span class="badge text-bg-danger">Försenad</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-warning">Aktiv</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <a href="/members" class="btn btn-outline-secondary mt-2">? Tillbaka till medlemmar</a>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Member? member;
+    private List<Loan> loans = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        member = await Db.Members.FindAsync(Id);
+        if (member is not null)
+        {
+            loans = await Db.Loans
+                .Where(l => l.MemberId == Id)
+                .Include(l => l.Book)
+                .OrderByDescending(l => l.LoanDate)
+                .ToListAsync();
+        }
+    }
+}

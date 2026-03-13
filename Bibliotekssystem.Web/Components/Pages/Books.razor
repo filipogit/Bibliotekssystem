@@ -1,0 +1,181 @@
+@page "/books"
+@rendermode InteractiveServer
+@inject LibraryContext Db
+
+<PageTitle>Böcker</PageTitle>
+
+<h1>?? Böcker</h1>
+
+<button class="btn btn-success mb-3" @onclick="() => showForm = !showForm">
+    @(showForm ? "? Avbryt" : "+ Lägg till bok")
+</button>
+
+@if (showForm)
+{
+    <div class="card mb-4" style="max-width:500px">
+        <div class="card-header"><strong>Ny bok</strong></div>
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(formMessage))
+            {
+                <div class="alert @(formError ? "alert-danger" : "alert-success")">@formMessage</div>
+            }
+            <EditForm Model="newBook" OnValidSubmit="AddBook">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label">Titel</label>
+                    <InputText class="form-control" @bind-Value="newBook.Title" />
+                    <ValidationMessage For="@(() => newBook.Title)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Författare</label>
+                    <InputText class="form-control" @bind-Value="newBook.Author" />
+                    <ValidationMessage For="@(() => newBook.Author)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ISBN</label>
+                    <InputText class="form-control" @bind-Value="newBook.ISBN" />
+                    <ValidationMessage For="@(() => newBook.ISBN)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Utgivningsår</label>
+                    <InputNumber class="form-control" @bind-Value="newBook.PublishedYear" />
+                    <ValidationMessage For="@(() => newBook.PublishedYear)" />
+                </div>
+                <button type="submit" class="btn btn-primary">Spara</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <input class="form-control" placeholder="Sök på titel, författare eller ISBN..."
+               @bind="searchTerm" @bind:event="oninput" @onkeyup="ApplyFilter" />
+    </div>
+</div>
+
+@if (filteredBooks is null)
+{
+    <p>Laddar...</p>
+}
+else if (!filteredBooks.Any())
+{
+    <p class="text-muted">Inga böcker hittades.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th style="cursor:pointer" @onclick='() => Sort("title")'>
+                    Titel @SortIndicator("title")
+                </th>
+                <th style="cursor:pointer" @onclick='() => Sort("author")'>
+                    Författare @SortIndicator("author")
+                </th>
+                <th style="cursor:pointer" @onclick='() => Sort("isbn")'>
+                    ISBN @SortIndicator("isbn")
+                </th>
+                <th style="cursor:pointer" @onclick='() => Sort("year")'>
+                    År @SortIndicator("year")
+                </th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var book in filteredBooks)
+            {
+                <tr>
+                    <td>@book.Title</td>
+                    <td>@book.Author</td>
+                    <td>@book.ISBN</td>
+                    <td>@book.PublishedYear</td>
+                    <td><StatusBadge IsAvailable="@book.IsAvailable" /></td>
+                    <td>
+                        <a href="/books/@book.Id" class="btn btn-sm btn-outline-primary">Detaljer</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Book>? allBooks;
+    private List<Book>? filteredBooks;
+    private string searchTerm = string.Empty;
+    private string sortColumn = "title";
+    private bool sortAscending = true;
+    private bool showForm;
+    private Book newBook = new();
+    private string formMessage = string.Empty;
+    private bool formError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        allBooks = await Db.Books.ToListAsync();
+        ApplyFilter();
+    }
+
+    private async Task AddBook()
+    {
+        var exists = await Db.Books.AnyAsync(b => b.ISBN == newBook.ISBN);
+        if (exists)
+        {
+            formMessage = "En bok med detta ISBN finns redan.";
+            formError = true;
+            return;
+        }
+
+        newBook.IsAvailable = true;
+        Db.Books.Add(newBook);
+        await Db.SaveChangesAsync();
+
+        formMessage = $"\"{newBook.Title}\" lades till.";
+        formError = false;
+        newBook = new();
+        showForm = false;
+
+        allBooks = await Db.Books.ToListAsync();
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (allBooks is null) return;
+
+        var result = string.IsNullOrWhiteSpace(searchTerm)
+            ? allBooks
+            : allBooks.Where(b => b.Matches(searchTerm)).ToList();
+
+        filteredBooks = sortColumn switch
+        {
+            "author" => sortAscending ? result.OrderBy(b => b.Author).ToList() : result.OrderByDescending(b => b.Author).ToList(),
+            "isbn"   => sortAscending ? result.OrderBy(b => b.ISBN).ToList()   : result.OrderByDescending(b => b.ISBN).ToList(),
+            "year"   => sortAscending ? result.OrderBy(b => b.PublishedYear).ToList() : result.OrderByDescending(b => b.PublishedYear).ToList(),
+            _        => sortAscending ? result.OrderBy(b => b.Title).ToList()  : result.OrderByDescending(b => b.Title).ToList(),
+        };
+    }
+
+    private void Sort(string column)
+    {
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+        ApplyFilter();
+    }
+
+    private string SortIndicator(string column)
+    {
+        if (sortColumn != column) return string.Empty;
+        return sortAscending ? "?" : "?";
+    }
+}
+

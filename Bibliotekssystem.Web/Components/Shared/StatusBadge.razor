@@ -1,0 +1,13 @@
+@if (IsAvailable)
+{
+    <span class="badge text-bg-success">Tillgänglig</span>
+}
+else
+{
+    <span class="badge text-bg-secondary">Utlånad</span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public bool IsAvailable { get; set; }
+}

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Remove="Bibliotekssystem.Test\**" />
+    <Compile Remove="Bibliotekssystem.Web\**" />
   </ItemGroup>
 
   <ItemGroup>
