@@ -1,0 +1,64 @@
+@page "/members"
+@rendermode InteractiveServer
+@inject LibraryContext Db
+
+<PageTitle>Medlemmar</PageTitle>
+
+<h1>?? Medlemmar</h1>
+
+@if (members is null)
+{
+    <p>Laddar...</p>
+}
+else if (!members.Any())
+{
+    <p class="text-muted">Inga medlemmar registrerade.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>E-post</th>
+                <th>Medlem sedan</th>
+                <th>Aktiva lån</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in members)
+            {
+                <tr>
+                    <td>@row.Member.Name</td>
+                    <td>@row.Member.Email</td>
+                    <td>@row.Member.MemberSince.ToShortDateString()</td>
+                    <td>
+                        <span class="badge @(row.ActiveLoans > 0 ? "text-bg-warning" : "text-bg-light text-dark")">
+                            @row.ActiveLoans
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/members/@row.Member.Id" class="btn btn-sm btn-outline-primary">Detaljer</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<MemberRow>? members;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var all = await Db.Members
+            .Include(m => m.Loans)
+            .OrderBy(m => m.Name)
+            .ToListAsync();
+
+        members = all.Select(m => new MemberRow(m, m.Loans.Count(l => l.ReturnDate == null))).ToList();
+    }
+
+    private record MemberRow(Member Member, int ActiveLoans);
+}

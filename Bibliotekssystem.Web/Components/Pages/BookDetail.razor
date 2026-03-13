@@ -1,0 +1,192 @@
+@page "/books/{Id:int}"
+@rendermode InteractiveServer
+@inject LibraryContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Bokdetaljer</PageTitle>
+
+@if (book is null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <h1>?? @book.Title</h1>
+
+    <div class="card mb-4" style="max-width:500px">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Författare</dt>
+                <dd class="col-sm-8">@book.Author</dd>
+                <dt class="col-sm-4">ISBN</dt>
+                <dd class="col-sm-8">@book.ISBN</dd>
+                <dt class="col-sm-4">Utgivningsår</dt>
+                <dd class="col-sm-8">@book.PublishedYear</dd>
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8">
+                    @if (book.IsAvailable)
+                    {
+                        <span class="badge text-bg-success">Tillgänglig</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-secondary">Utlånad</span>
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
+    }
+
+    @if (book.IsAvailable)
+    {
+        <h5>Låna boken</h5>
+        <div class="row g-2 mb-4" style="max-width:500px">
+            <div class="col">
+                <select class="form-select" @bind="selectedMemberId">
+                    <option value="0">-- Välj medlem --</option>
+                    @foreach (var m in members)
+                    {
+                        <option value="@m.Id">@m.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary" @onclick="LoanBook">Låna</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-warning mb-4" @onclick="ReturnBook">Returnera boken</button>
+    }
+
+    <h2>Lånehistorik</h2>
+    @if (!loans.Any())
+    {
+        <p class="text-muted">Inga lån registrerade för denna bok.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Medlem</th>
+                    <th>Lånedatum</th>
+                    <th>Förfallodatum</th>
+                    <th>Återlämnat</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var loan in loans)
+                {
+                    <tr>
+                        <td>@loan.Member.Name</td>
+                        <td>@loan.LoanDate.ToShortDateString()</td>
+                        <td>@loan.DueDate.ToShortDateString()</td>
+                        <td>@(loan.ReturnDate.HasValue ? loan.ReturnDate.Value.ToShortDateString() : "–")</td>
+                        <td>
+                            @if (loan.IsReturned)
+                            {
+                                <span class="badge text-bg-success">Återlämnad</span>
+                            }
+                            else if (loan.IsOverdue)
+                            {
+                                <span class="badge text-bg-danger">Försenad</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-warning">Aktiv</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <a href="/books" class="btn btn-outline-secondary mt-2">? Tillbaka till böcker</a>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Book? book;
+    private List<Loan> loans = new();
+    private List<Member> members = new();
+    private int selectedMemberId;
+    private string message = string.Empty;
+    private bool isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        members = await Db.Members.OrderBy(m => m.Name).ToListAsync();
+    }
+
+    private async Task LoadData()
+    {
+        book = await Db.Books.FindAsync(Id);
+        if (book is not null)
+        {
+            loans = await Db.Loans
+                .Where(l => l.BookId == Id)
+                .Include(l => l.Member)
+                .OrderByDescending(l => l.LoanDate)
+                .ToListAsync();
+        }
+    }
+
+    private async Task LoanBook()
+    {
+        if (selectedMemberId == 0)
+        {
+            message = "Välj en medlem innan du lånar.";
+            isError = true;
+            return;
+        }
+
+        var member = await Db.Members.FindAsync(selectedMemberId);
+        if (member is null || book is null) return;
+
+        var loan = new Loan(book, member, DateTime.Now, DateTime.Now.AddDays(14));
+        loan.BookId = book.Id;
+        loan.MemberId = member.Id;
+        book.IsAvailable = false;
+        book.BorrowedBy = member.Name;
+
+        Db.Loans.Add(loan);
+        await Db.SaveChangesAsync();
+
+        message = $"Boken lånades ut till {member.Name}.";
+        isError = false;
+        selectedMemberId = 0;
+        await LoadData();
+    }
+
+    private async Task ReturnBook()
+    {
+        if (book is null) return;
+
+        var activeLoan = await Db.Loans
+            .FirstOrDefaultAsync(l => l.BookId == book.Id && l.ReturnDate == null);
+
+        if (activeLoan is not null)
+        {
+            activeLoan.ReturnDate = DateTime.Now;
+        }
+
+        book.IsAvailable = true;
+        book.BorrowedBy = null;
+        await Db.SaveChangesAsync();
+
+        message = "Boken har returnerats.";
+        isError = false;
+        await LoadData();
+    }
+}

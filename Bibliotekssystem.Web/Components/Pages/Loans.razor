@@ -1,0 +1,167 @@
+@page "/loans"
+@rendermode InteractiveServer
+@inject LibraryContext Db
+
+<PageTitle>Utlåning</PageTitle>
+
+<h1>?? Utlåning</h1>
+
+<div class="card mb-4" style="max-width:500px">
+    <div class="card-header"><strong>Nytt lån</strong></div>
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
+        }
+        <div class="mb-3">
+            <label class="form-label">Bok</label>
+            <select class="form-select" @bind="selectedBookId">
+                <option value="0">-- Välj bok --</option>
+                @foreach (var b in availableBooks)
+                {
+                    <option value="@b.Id">@b.Title (@b.Author)</option>
+                }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Medlem</label>
+            <select class="form-select" @bind="selectedMemberId">
+                <option value="0">-- Välj medlem --</option>
+                @foreach (var m in members)
+                {
+                    <option value="@m.Id">@m.Name</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-primary" @onclick="CreateLoan">Skapa lån</button>
+    </div>
+</div>
+
+<h2>Aktiva lån</h2>
+@if (!activeLoans.Any())
+{
+    <p class="text-muted">Inga aktiva lån.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Bok</th>
+                <th>Medlem</th>
+                <th>Lånedatum</th>
+                <th>Förfallodatum</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var loan in activeLoans)
+            {
+                <tr class="@(loan.IsOverdue ? "table-danger" : "")">
+                    <td><a href="/books/@loan.BookId">@loan.Book.Title</a></td>
+                    <td><a href="/members/@loan.MemberId">@loan.Member.Name</a></td>
+                    <td>@loan.LoanDate.ToShortDateString()</td>
+                    <td>@loan.DueDate.ToShortDateString()</td>
+                    <td>
+                        @if (loan.IsOverdue)
+                        {
+                            <span class="badge text-bg-danger">Försenad</span>
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-warning">Aktiv</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-success" @onclick="() => ReturnLoan(loan)">
+                            Returnera
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Book> availableBooks = new();
+    private List<Member> members = new();
+    private List<Loan> activeLoans = new();
+    private int selectedBookId;
+    private int selectedMemberId;
+    private string message = string.Empty;
+    private bool isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        availableBooks = await Db.Books
+            .Where(b => b.IsAvailable)
+            .OrderBy(b => b.Title)
+            .ToListAsync();
+
+        members = await Db.Members
+            .OrderBy(m => m.Name)
+            .ToListAsync();
+
+        activeLoans = await Db.Loans
+            .Where(l => l.ReturnDate == null)
+            .Include(l => l.Book)
+            .Include(l => l.Member)
+            .OrderBy(l => l.DueDate)
+            .ToListAsync();
+    }
+
+    private async Task CreateLoan()
+    {
+        if (selectedBookId == 0 || selectedMemberId == 0)
+        {
+            message = "Välj både bok och medlem.";
+            isError = true;
+            return;
+        }
+
+        var book = await Db.Books.FindAsync(selectedBookId);
+        var member = await Db.Members.FindAsync(selectedMemberId);
+        if (book is null || member is null) return;
+
+        var loan = new Loan(book, member, DateTime.Now, DateTime.Now.AddDays(14))
+        {
+            BookId = book.Id,
+            MemberId = member.Id
+        };
+
+        book.IsAvailable = false;
+        book.BorrowedBy = member.Name;
+
+        Db.Loans.Add(loan);
+        await Db.SaveChangesAsync();
+
+        message = $"Lån skapat: \"{book.Title}\" till {member.Name}.";
+        isError = false;
+        selectedBookId = 0;
+        selectedMemberId = 0;
+        await LoadData();
+    }
+
+    private async Task ReturnLoan(Loan loan)
+    {
+        loan.ReturnDate = DateTime.Now;
+        var book = await Db.Books.FindAsync(loan.BookId);
+        if (book is not null)
+        {
+            book.IsAvailable = true;
+            book.BorrowedBy = null;
+        }
+        await Db.SaveChangesAsync();
+
+        message = $"\"{loan.Book.Title}\" har returnerats.";
+        isError = false;
+        await LoadData();
+    }
+}
