@@ -14,7 +14,6 @@ namespace Bibliotekssystem.Models
         [StringLength(100, ErrorMessage = "Författarnamn får max vara 100 tecken.")]
         public string Author { get; set; } = string.Empty;
     
-        // Navigation properties
         public ICollection<Loan> Loans { get; set; } = new List<Loan>();
 
         public Book() { }
@@ -26,7 +25,6 @@ namespace Bibliotekssystem.Models
             Author = author;
         }
 
-        // Override Matches för att inkludera ISBN och Author
         public override bool Matches(string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
@@ -47,10 +45,3 @@ namespace Bibliotekssystem.Models
         }
     }
 }
-
-/*
-Properties: ISBN(string), Title(string), Author(string), PublishedYear(int), IsAvailable(bool)
-Konstruktor som tar obligatoriska parametrar
-ISBN ska endast kunna sättas vid skapande
-Metod GetInfo() som returnerar formaterad bokinformation
-*/
