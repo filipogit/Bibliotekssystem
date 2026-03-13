@@ -67,25 +67,25 @@ Bibliotekssystem/
 ```
 LibraryItem (basklass)
 +-- Id             int (PK)
-+-- Title          string
-+-- PublishedYear  int
++-- Title          string  [Required, max 200 tecken]
++-- PublishedYear  int     [Range 1000-2100]
 +-- IsAvailable    bool
 +-- BorrowedBy     string?
 
-Book : LibraryItem
-+-- ISBN           string (unik index)
-+-- Author         string
+Book : LibraryItem          (tabell: Books)
++-- ISBN           string  [Required, max 20 tecken, unik index]
++-- Author         string  [Required, max 100 tecken]
 
-Member
+Member                      (tabell: Members)
 +-- Id             int (PK)
-+-- Name           string
-+-- Email          string
++-- Name           string  [Required, max 100 tecken]
++-- Email          string  [Required, e-postformat]
 +-- MemberSince    DateTime
 
-Loan
+Loan                        (tabell: Loans)
 +-- Id             int (PK)
-+-- BookId         int (FK -> Book)
-+-- MemberId       int (FK -> Member)
++-- BookId         int (FK -> Books.Id)
++-- MemberId       int (FK -> Members.Id)
 +-- LoanDate       DateTime
 +-- DueDate        DateTime
 +-- ReturnDate     DateTime?
