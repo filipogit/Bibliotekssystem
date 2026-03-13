@@ -10,19 +10,18 @@ namespace Bibliotekssystem.Models
 {
     public class LibraryItem : ISearchable
     {
-        public string Id { get; init; }
-        public string Title { get; set; }
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
         public int PublishedYear { get; set; }
-        public bool IsAvailable { get; set; }
-        public string? BorrowedBy { get; set; } // Ny egenskap för statistik
+        public bool IsAvailable { get; set; } = true;
+        public string? BorrowedBy { get; set; }
 
-        public LibraryItem(string id, string title, int publishedYear)
+        public LibraryItem() { }
+
+        public LibraryItem(string title, int publishedYear)
         {
-            Id = id;
             Title = title;
             PublishedYear = publishedYear;
-            IsAvailable = true;
-            BorrowedBy = null;
         }
 
         public virtual void CheckOut(string borrowerName)
@@ -62,7 +61,7 @@ namespace Bibliotekssystem.Models
             searchTerm = searchTerm.ToLower();
 
             return Title.ToLower().Contains(searchTerm) ||
-                   Id.ToLower().Contains(searchTerm) ||
+                   Id.ToString().Contains(searchTerm) ||
                    PublishedYear.ToString().Contains(searchTerm);
         }
 

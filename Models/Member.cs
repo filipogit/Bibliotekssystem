@@ -8,26 +8,26 @@ namespace Bibliotekssystem.Models
 {
     public class Member
     {
-        public string MemberId { get; init; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public DateTime MemberSince { get; init; }
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public DateTime MemberSince { get; set; }
 
-        // Konstruktor med DateTime
-        public Member(string memberId, string name, string email, DateTime memberSince)
+        // Navigation properties
+        public ICollection<Loan> Loans { get; set; } = new List<Loan>();
+
+        public Member() { }
+
+        public Member(string name, string email, DateTime memberSince)
         {
-            MemberId = memberId;
             Name = name;
             Email = email;
             MemberSince = memberSince;
         }
 
-
-        // Alternativ konstruktor utan DateTime (sätter dagens datum som standard)
-        public Member(string memberId, string name, string email)
-            : this(memberId, name, email, DateTime.Now)
+        public Member(string name, string email)
+            : this(name, email, DateTime.Now)
         {
-
         }
     }
 }

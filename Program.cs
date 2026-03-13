@@ -1,17 +1,18 @@
-﻿using Bibliotekssystem.Models;
-using Bibliotekssystem.Services;    
-
-
+﻿using Bibliotekssystem.Data;
+using Bibliotekssystem.Models;
+using Bibliotekssystem.Services;
 
 class Program
 {
     static void Main(string[] args)
     {
-        var library = new Library();
-        
-        // Lägg till testdata
-        SeedLibrary(library);
-        
+        using var context = new LibraryContext();
+        context.Database.EnsureCreated();
+
+        var library = new Library(context);
+
+        SeedLibrary(library, context);
+
         bool running = true;
         while (running)
         {
@@ -23,9 +24,9 @@ class Program
             Console.WriteLine("5. Visa alla böcker");
             Console.WriteLine("0. Avsluta");
             Console.Write("\nVälj alternativ: ");
-            
+
             var choice = Console.ReadLine();
-            
+
             switch (choice)
             {
                 case "1":
@@ -58,15 +59,15 @@ class Program
     {
         Console.Write("\nAnge sökterm: ");
         string searchTerm = Console.ReadLine() ?? "";
-        
+
         var results = library.Search(searchTerm);
-        
+
         Console.WriteLine($"\n=== Hittade {results.Count} resultat ===\n");
         foreach (var item in results)
         {
             Console.WriteLine(item.GetInfo());
         }
-        
+
         if (results.Count == 0)
         {
             Console.WriteLine("Inga resultat hittades.");
@@ -77,15 +78,15 @@ class Program
     {
         Console.Write("\nAnge titel: ");
         string title = Console.ReadLine() ?? "";
-        
+
         var results = library.SearchByTitle(title);
-        
+
         Console.WriteLine($"\n=== Hittade {results.Count} resultat ===\n");
         foreach (var item in results)
         {
             Console.WriteLine(item.GetInfo());
         }
-        
+
         if (results.Count == 0)
         {
             Console.WriteLine("Inga böcker med den titeln hittades.");
@@ -96,15 +97,15 @@ class Program
     {
         Console.Write("\nAnge författare: ");
         string author = Console.ReadLine() ?? "";
-        
+
         var results = library.SearchByAuthor(author);
-        
+
         Console.WriteLine($"\n=== Hittade {results.Count} böcker ===\n");
         foreach (var book in results)
         {
             Console.WriteLine(book.GetInfo());
         }
-        
+
         if (results.Count == 0)
         {
             Console.WriteLine("Inga böcker av den författaren hittades.");
@@ -115,9 +116,9 @@ class Program
     {
         Console.Write("\nAnge ISBN: ");
         string isbn = Console.ReadLine() ?? "";
-        
+
         var book = library.SearchByISBN(isbn);
-        
+
         if (book != null)
         {
             Console.WriteLine("\n=== Bok hittad ===\n");
@@ -129,13 +130,14 @@ class Program
         }
     }
 
-    static void SeedLibrary(Library library)
+    static void SeedLibrary(Library library, LibraryContext context)
     {
-        library.AddItem(new Book("978-91-0-012345-6", "Sagan om ringen", "J.R.R. Tolkien", 1954));
-        library.AddItem(new Book("978-91-0-067891-2", "Harry Potter och de vises sten", "J.K. Rowling", 1997));
-        library.AddItem(new Book("978-91-0-098765-4", "Hobbit", "J.R.R. Tolkien", 1937));
-        library.AddItem(new Book("978-91-0-055555-5", "1984", "George Orwell", 1949));
-        library.AddItem(new Magazine("M001", "Populär Vetenskap", 2024, 1, "Bonnier", "Januari"));
-        library.AddItem(new DVD("D001", "Sagan om ringen", 2001, "Peter Jackson", 178, "Fantasy"));
+        if (context.Books.Any())
+            return;
+
+        library.AddBook(new Book("978-91-0-012345-6", "Sagan om ringen", "J.R.R. Tolkien", 1954));
+        library.AddBook(new Book("978-91-0-067891-2", "Harry Potter och de vises sten", "J.K. Rowling", 1997));
+        library.AddBook(new Book("978-91-0-098765-4", "Hobbit", "J.R.R. Tolkien", 1937));
+        library.AddBook(new Book("978-91-0-055555-5", "1984", "George Orwell", 1949));
     }
 }

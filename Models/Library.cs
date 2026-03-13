@@ -1,4 +1,6 @@
-﻿using Bibliotekssystem.Models;
+﻿using Bibliotekssystem.Data;
+using Bibliotekssystem.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,180 +11,223 @@ namespace Bibliotekssystem.Services
 {
     public class Library
     {
-        private List<LibraryItem> items;
+        private readonly LibraryContext _context;
 
-        public Library()
+        public Library(LibraryContext context)
         {
-            items = new List<LibraryItem>();
+            _context = context;
         }
 
         // Lägg till objekt
-        public void AddItem(LibraryItem item)
+        public void AddBook(Book book)
         {
-            items.Add(item);
-            Console.WriteLine($"Lade till: {item.Title}");
+            _context.Books.Add(book);
+            _context.SaveChanges();
+            Console.WriteLine($"Lade till: {book.Title}");
+        }
+
+        public void AddMember(Member member)
+        {
+            _context.Members.Add(member);
+            _context.SaveChanges();
+            Console.WriteLine($"Lade till medlem: {member.Name}");
         }
 
         // ===== SÖKFUNKTIONER =====
 
-        // Generell sökning (fungerar för alla typer)
-        public List<LibraryItem> Search(string searchTerm)
+        // Generell sökning
+        public List<Book> Search(string searchTerm)
         {
-            return items.Where(item => item.Matches(searchTerm)).ToList();
-        }
-
-        // Sök specifikt efter böcker
-        public List<Book> SearchBooks(string searchTerm)
-        {
-            return items.OfType<Book>()
-                       .Where(book => book.Matches(searchTerm))
-                       .ToList();
+            var term = searchTerm.ToLower();
+            return _context.Books
+                .Where(b => b.Title.ToLower().Contains(term) ||
+                            b.Author.ToLower().Contains(term) ||
+                            b.ISBN.ToLower().Contains(term) ||
+                            b.PublishedYear.ToString().Contains(term))
+                .ToList();
         }
 
         // Sök efter titel
-        public List<LibraryItem> SearchByTitle(string title)
+        public List<Book> SearchByTitle(string title)
         {
-            return items.Where(item => item.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
-                       .ToList();
+            return _context.Books
+                .Where(b => b.Title.ToLower().Contains(title.ToLower()))
+                .ToList();
         }
 
-        // Sök efter författare (endast böcker)
+        // Sök efter författare
         public List<Book> SearchByAuthor(string author)
         {
-            return items.OfType<Book>()
-                       .Where(book => book.Author.Contains(author, StringComparison.OrdinalIgnoreCase))
-                       .ToList();
+            return _context.Books
+                .Where(b => b.Author.ToLower().Contains(author.ToLower()))
+                .ToList();
         }
 
         // Sök efter ISBN
         public Book? SearchByISBN(string isbn)
         {
-            return items.OfType<Book>()
-                       .FirstOrDefault(book => book.ISBN.Equals(isbn, StringComparison.OrdinalIgnoreCase));
+            return _context.Books
+                .FirstOrDefault(b => b.ISBN.ToLower() == isbn.ToLower());
         }
 
         // ===== SORTERINGSFUNKTIONER =====
 
-        // Sortera alfabetiskt efter titel
-        public List<LibraryItem> SortByTitle(bool ascending = true)
+        public List<Book> SortByTitle(bool ascending = true)
         {
             return ascending
-                ? items.OrderBy(item => item.Title).ToList()
-                : items.OrderByDescending(item => item.Title).ToList();
+                ? _context.Books.OrderBy(b => b.Title).ToList()
+                : _context.Books.OrderByDescending(b => b.Title).ToList();
         }
 
-        // Sortera efter utgivningsår
-        public List<LibraryItem> SortByYear(bool ascending = true)
+        public List<Book> SortByYear(bool ascending = true)
         {
             return ascending
-                ? items.OrderBy(item => item.PublishedYear).ToList()
-                : items.OrderByDescending(item => item.PublishedYear).ToList();
+                ? _context.Books.OrderBy(b => b.PublishedYear).ToList()
+                : _context.Books.OrderByDescending(b => b.PublishedYear).ToList();
         }
 
-        // Sortera böcker efter författare
         public List<Book> SortBooksByAuthor(bool ascending = true)
         {
-            var books = items.OfType<Book>();
             return ascending
-                ? books.OrderBy(book => book.Author).ToList()
-                : books.OrderByDescending(book => book.Author).ToList();
+                ? _context.Books.OrderBy(b => b.Author).ToList()
+                : _context.Books.OrderByDescending(b => b.Author).ToList();
+        }
+
+        // ===== LÅN =====
+
+        public void BorrowBook(int bookId, int memberId)
+        {
+            var book = _context.Books.Find(bookId);
+            var member = _context.Members.Find(memberId);
+
+            if (book == null || member == null)
+            {
+                Console.WriteLine("Bok eller medlem hittades inte.");
+                return;
+            }
+
+            if (!book.IsAvailable)
+            {
+                Console.WriteLine($"{book.Title} är redan utlånad.");
+                return;
+            }
+
+            var loan = new Loan
+            {
+                BookId = bookId,
+                MemberId = memberId,
+                LoanDate = DateTime.Now,
+                DueDate = DateTime.Now.AddDays(14)
+            };
+
+            book.IsAvailable = false;
+            book.BorrowedBy = member.Name;
+
+            _context.Loans.Add(loan);
+            _context.SaveChanges();
+            Console.WriteLine($"{book.Title} har lånats ut till {member.Name}.");
+        }
+
+        public void ReturnBook(int bookId)
+        {
+            var loan = _context.Loans
+                .Include(l => l.Book)
+                .Include(l => l.Member)
+                .FirstOrDefault(l => l.BookId == bookId && l.ReturnDate == null);
+
+            if (loan == null)
+            {
+                Console.WriteLine("Inget aktivt lån hittades för denna bok.");
+                return;
+            }
+
+            loan.ReturnDate = DateTime.Now;
+            loan.Book.IsAvailable = true;
+            loan.Book.BorrowedBy = null;
+
+            _context.SaveChanges();
+            Console.WriteLine($"{loan.Book.Title} har returnerats av {loan.Member.Name}.");
         }
 
         // ===== STATISTIKFUNKTIONER =====
 
-        // Totalt antal objekt
-        public int GetTotalItemCount()
-        {
-            return items.Count;
-        }
-
-        // Totalt antal böcker
         public int GetTotalBookCount()
         {
-            return items.OfType<Book>().Count();
+            return _context.Books.Count();
         }
 
-        // Antal utlånade objekt
         public int GetBorrowedItemCount()
         {
-            return items.Count(item => !item.IsAvailable);
+            return _context.Books.Count(b => !b.IsAvailable);
         }
 
-        // Antal utlånade böcker
         public int GetBorrowedBookCount()
         {
-            return items.OfType<Book>().Count(book => !book.IsAvailable);
+            return _context.Books.Count(b => !b.IsAvailable);
         }
 
-        // Antal tillgängliga objekt
         public int GetAvailableItemCount()
         {
-            return items.Count(item => item.IsAvailable);
+            return _context.Books.Count(b => b.IsAvailable);
         }
 
-        // Mest aktiv låntagare
         public string? GetMostActiveBorrower()
         {
-            var borrowerCounts = items
-                .Where(item => item.BorrowedBy != null)
-                .GroupBy(item => item.BorrowedBy)
-                .Select(group => new { Borrower = group.Key, Count = group.Count() })
+            var borrower = _context.Loans
+                .GroupBy(l => l.Member.Name)
+                .Select(g => new { Name = g.Key, Count = g.Count() })
                 .OrderByDescending(x => x.Count)
                 .FirstOrDefault();
 
-            return borrowerCounts?.Borrower;
+            return borrower?.Name;
         }
 
-        // Detaljerad statistik per låntagare
         public Dictionary<string, int> GetBorrowerStatistics()
         {
-            return items
-                .Where(item => item.BorrowedBy != null)
-                .GroupBy(item => item.BorrowedBy!)
-                .ToDictionary(group => group.Key, group => group.Count());
+            return _context.Loans
+                .GroupBy(l => l.Member.Name)
+                .ToDictionary(g => g.Key, g => g.Count());
         }
 
-        // Få alla utlånade böcker
-        public List<LibraryItem> GetBorrowedItems()
+        public List<Book> GetBorrowedItems()
         {
-            return items.Where(item => !item.IsAvailable).ToList();
+            return _context.Books.Where(b => !b.IsAvailable).ToList();
         }
 
-        // Få alla tillgängliga böcker
-        public List<LibraryItem> GetAvailableItems()
+        public List<Book> GetAvailableItems()
         {
-            return items.Where(item => item.IsAvailable).ToList();
+            return _context.Books.Where(b => b.IsAvailable).ToList();
         }
 
         // Utskriftsmetoder
         public void ShowAllItems()
         {
-            Console.WriteLine("\n=== ALLA OBJEKT I BIBLIOTEKET ===\n");
-            foreach (var item in items)
+            var books = _context.Books.ToList();
+            Console.WriteLine("\n=== ALLA BÖCKER I BIBLIOTEKET ===\n");
+            foreach (var book in books)
             {
-                Console.WriteLine(item.GetInfo());
+                Console.WriteLine(book.GetInfo());
             }
-            Console.WriteLine($"\nTotalt: {items.Count} objekt");
+            Console.WriteLine($"\nTotalt: {books.Count} böcker");
         }
 
         public void ShowStatistics()
         {
             Console.WriteLine("\n=== BIBLIOTEKSSTATISTIK ===\n");
-            Console.WriteLine($"Totalt antal objekt: {GetTotalItemCount()}");
             Console.WriteLine($"Totalt antal böcker: {GetTotalBookCount()}");
-            Console.WriteLine($"Antal utlånade objekt: {GetBorrowedItemCount()}");
-            Console.WriteLine($"Antal tillgängliga objekt: {GetAvailableItemCount()}");
+            Console.WriteLine($"Antal utlånade böcker: {GetBorrowedItemCount()}");
+            Console.WriteLine($"Antal tillgängliga böcker: {GetAvailableItemCount()}");
 
             var mostActive = GetMostActiveBorrower();
             if (mostActive != null)
             {
                 var stats = GetBorrowerStatistics();
-                Console.WriteLine($"\nMest aktiv låntagare: {mostActive} ({stats[mostActive]} böcker)");
+                Console.WriteLine($"\nMest aktiv låntagare: {mostActive} ({stats[mostActive]} lån)");
 
                 Console.WriteLine("\nAlla låntagare:");
                 foreach (var borrower in stats.OrderByDescending(x => x.Value))
                 {
-                    Console.WriteLine($"  - {borrower.Key}: {borrower.Value} böcker");
+                    Console.WriteLine($"  - {borrower.Key}: {borrower.Value} lån");
                 }
             }
             else
