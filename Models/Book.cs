@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,11 +10,16 @@ namespace Bibliotekssystem.Models
 {
     public class Book : LibraryItem
     {
-        public string ISBN { get; init; }
-        public string Author { get; set; }
+        public string ISBN { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+    
+        // Navigation properties
+        public ICollection<Loan> Loans { get; set; } = new List<Loan>();
+
+        public Book() { }
 
         public Book(string isbn, string title, string author, int publishedYear)
-            : base(isbn, title, publishedYear)
+            : base(title, publishedYear)
         {
             ISBN = isbn;
             Author = author;

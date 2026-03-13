@@ -9,11 +9,13 @@ namespace Bibliotekssystem.Models
     public class Magazine : LibraryItem
     {
         public int IssueNumber { get; set; }
-        public string Publisher { get; set; }
-        public string Month { get; set; }
+        public string Publisher { get; set; } = string.Empty;
+        public string Month { get; set; } = string.Empty;
 
-        public Magazine(string id, string title, int publishedYear, int issueNumber, string publisher, string month)
-            : base(id, title, publishedYear)
+        public Magazine() { }
+
+        public Magazine(string title, int publishedYear, int issueNumber, string publisher, string month)
+            : base(title, publishedYear)
         {
             IssueNumber = issueNumber;
             Publisher = publisher;

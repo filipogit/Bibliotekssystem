@@ -4,13 +4,22 @@ namespace Bibliotekssystem.Models
 {
     public class Loan
     {
-        public Book Book { get; init; }
-        public Member Member { get; init; }
-        public DateTime LoanDate { get; init; }
-        public DateTime DueDate { get; init; }
+        public int Id { get; set; }
+
+        // Foreign keys
+        public int BookId { get; set; }
+        public int MemberId { get; set; }
+
+        // Navigation properties
+        public Book Book { get; set; } = null!;
+        public Member Member { get; set; } = null!;
+
+        public DateTime LoanDate { get; set; }
+        public DateTime DueDate { get; set; }
         public DateTime? ReturnDate { get; set; }
 
-        // Konstruktor med alla parametrar
+        public Loan() { }
+
         public Loan(Book book, Member member, DateTime loanDate, DateTime dueDate)
         {
             Book = book;

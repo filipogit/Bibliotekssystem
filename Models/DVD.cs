@@ -8,12 +8,14 @@ namespace Bibliotekssystem.Models
 {
     public class DVD : LibraryItem
     {
-        public string Director { get; set; }
+        public string Director { get; set; } = string.Empty;
         public int Duration { get; set; }
-        public string Genre { get; set; }
+        public string Genre { get; set; } = string.Empty;
 
-        public DVD(string id, string title, int publishedYear, string director, int duration, string genre)
-            : base(id, title, publishedYear)
+        public DVD() { }
+
+        public DVD(string title, int publishedYear, string director, int duration, string genre)
+            : base(title, publishedYear)
         {
             Director = director;
             Duration = duration;
