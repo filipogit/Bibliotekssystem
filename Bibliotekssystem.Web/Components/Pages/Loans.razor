@@ -13,27 +13,34 @@
         {
             <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
         }
-        <div class="mb-3">
-            <label class="form-label">Bok</label>
-            <select class="form-select" @bind="selectedBookId">
-                <option value="0">-- Välj bok --</option>
-                @foreach (var b in availableBooks)
-                {
-                    <option value="@b.Id">@b.Title (@b.Author)</option>
-                }
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Medlem</label>
-            <select class="form-select" @bind="selectedMemberId">
-                <option value="0">-- Välj medlem --</option>
-                @foreach (var m in members)
-                {
-                    <option value="@m.Id">@m.Name</option>
-                }
-            </select>
-        </div>
-        <button class="btn btn-primary" @onclick="CreateLoan">Skapa lån</button>
+        <EditForm Model="loanForm" OnValidSubmit="CreateLoan">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Bok</label>
+                <InputSelect class="form-select" @bind-Value="loanForm.BookId">
+                    <option value="0">-- Välj bok --</option>
+                    @foreach (var b in availableBooks)
+                    {
+                        <option value="@b.Id">@b.Title (@b.Author)</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => loanForm.BookId)" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Medlem</label>
+                <InputSelect class="form-select" @bind-Value="loanForm.MemberId">
+                    <option value="0">-- Välj medlem --</option>
+                    @foreach (var m in members)
+                    {
+                        <option value="@m.Id">@m.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => loanForm.MemberId)" />
+            </div>
+            <button type="submit" class="btn btn-primary">Skapa lån</button>
+        </EditForm>
     </div>
 </div>
 
@@ -88,8 +95,7 @@ else
     private List<Book> availableBooks = new();
     private List<Member> members = new();
     private List<Loan> activeLoans = new();
-    private int selectedBookId;
-    private int selectedMemberId;
+    private LoanForm loanForm = new();
     private string message = string.Empty;
     private bool isError;
 
@@ -119,15 +125,8 @@ else
 
     private async Task CreateLoan()
     {
-        if (selectedBookId == 0 || selectedMemberId == 0)
-        {
-            message = "Välj både bok och medlem.";
-            isError = true;
-            return;
-        }
-
-        var book = await Db.Books.FindAsync(selectedBookId);
-        var member = await Db.Members.FindAsync(selectedMemberId);
+        var book = await Db.Books.FindAsync(loanForm.BookId);
+        var member = await Db.Members.FindAsync(loanForm.MemberId);
         if (book is null || member is null) return;
 
         var loan = new Loan(book, member, DateTime.Now, DateTime.Now.AddDays(14))
@@ -144,8 +143,7 @@ else
 
         message = $"Lån skapat: \"{book.Title}\" till {member.Name}.";
         isError = false;
-        selectedBookId = 0;
-        selectedMemberId = 0;
+        loanForm = new();
         await LoadData();
     }
 
@@ -164,4 +162,14 @@ else
         isError = false;
         await LoadData();
     }
+
+    private class LoanForm
+    {
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Välj en bok.")]
+        public int BookId { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Välj en medlem.")]
+        public int MemberId { get; set; }
+    }
 }
+

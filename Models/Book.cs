@@ -1,16 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+using System.ComponentModel.DataAnnotations;
 using Bibliotekssystem.Interfaces;
 
 namespace Bibliotekssystem.Models
 {
     public class Book : LibraryItem
     {
+        [Required(ErrorMessage = "ISBN är obligatoriskt.")]
+        [StringLength(20, ErrorMessage = "ISBN får max vara 20 tecken.")]
         public string ISBN { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Författare är obligatoriskt.")]
+        [StringLength(100, ErrorMessage = "Författarnamn får max vara 100 tecken.")]
         public string Author { get; set; } = string.Empty;
     
         // Navigation properties

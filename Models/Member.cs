@@ -1,16 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace Bibliotekssystem.Models
 {
     public class Member
     {
         public int Id { get; set; }
+
+        [Required(ErrorMessage = "Namn är obligatoriskt.")]
+        [StringLength(100, ErrorMessage = "Namn får max vara 100 tecken.")]
         public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "E-post är obligatoriskt.")]
+        [EmailAddress(ErrorMessage = "Ange en giltig e-postadress.")]
         public string Email { get; set; } = string.Empty;
+
         public DateTime MemberSince { get; set; }
 
         // Navigation properties

@@ -1,0 +1,16 @@
+<div class="card h-100 @(Book.IsAvailable ? "border-success" : "border-secondary")">
+    <div class="card-body">
+        <h5 class="card-title">@Book.Title</h5>
+        <p class="card-text text-muted mb-1">@Book.Author (@Book.PublishedYear)</p>
+        <p class="card-text"><small class="text-muted">ISBN: @Book.ISBN</small></p>
+        <StatusBadge IsAvailable="@Book.IsAvailable" />
+    </div>
+    <div class="card-footer bg-transparent">
+        <a href="/books/@Book.Id" class="btn btn-sm btn-outline-primary w-100">Detaljer</a>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Book Book { get; set; } = default!;
+}
